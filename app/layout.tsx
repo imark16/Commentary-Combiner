@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Commentary Synthesis | One Church Blackburn",
+  title: "Commentary Synthesis | #TruthMattersMost",
   description: "Synthesise biblical commentaries from a Reformed theological perspective.",
 };
 

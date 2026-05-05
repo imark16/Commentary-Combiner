@@ -99,13 +99,9 @@ export default function Home() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-3">
-          <div className="flex flex-col leading-none select-none">
-            <span className="text-2xl font-bold text-[#c0392b] tracking-tight">O</span>
-            <span className="text-2xl font-bold text-[#c0392b] tracking-tight -mt-2">C</span>
-          </div>
-          <div className="border-l border-gray-300 pl-3">
+          <div>
             <h1 className="text-lg font-bold text-gray-900">Commentary Synthesis</h1>
-            <p className="text-sm text-gray-500">One Church Blackburn</p>
+            <p className="text-sm font-semibold text-[#c0392b]">#TruthMattersMost</p>
           </div>
         </div>
       </header>

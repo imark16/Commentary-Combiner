@@ -77,9 +77,11 @@ export async function POST(request: NextRequest) {
               controller.enqueue(encoder.encode(chunk.delta.text));
             }
           }
-          controller.close();
         } catch (err) {
-          controller.error(err);
+          const msg = err instanceof Error ? err.message : 'Streaming error.';
+          controller.enqueue(encoder.encode(`\n\n[Error: ${msg}]`));
+        } finally {
+          controller.close();
         }
       },
     });
@@ -89,11 +91,13 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache',
         'X-Accel-Buffering': 'no',
+        'Transfer-Encoding': 'chunked',
       },
     });
   } catch (err) {
-    console.error('Synthesis error:', err);
-    return new Response('Failed to generate synthesis. Please try again.', {
+    const msg = err instanceof Error ? err.message : 'Unknown error.';
+    console.error('Synthesis error:', msg);
+    return new Response(`Failed to generate synthesis: ${msg}`, {
       status: 500,
     });
   }
