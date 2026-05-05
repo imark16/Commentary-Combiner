@@ -8,6 +8,14 @@ export interface ResourceFile {
   content: string;
 }
 
+export interface ResourceFileInfo {
+  name: string;
+  filePath: string;
+}
+
+const PER_FILE_CHAR_LIMIT = 20000;
+const TOTAL_CHAR_LIMIT = 80000;
+
 function stripHtml(html: string): string {
   return html
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
@@ -47,11 +55,11 @@ async function readEpub(filePath: string): Promise<string> {
     const htmlContent = await zip.file(htmlPath)?.async('text');
     if (htmlContent) {
       text += stripHtml(htmlContent) + '\n\n';
-      if (text.length > 40000) break;
+      if (text.length > PER_FILE_CHAR_LIMIT) break;
     }
   }
 
-  return text.slice(0, 40000);
+  return text.slice(0, PER_FILE_CHAR_LIMIT);
 }
 
 function collectFiles(dir: string, results: string[] = []): string[] {
@@ -66,25 +74,39 @@ function collectFiles(dir: string, results: string[] = []): string[] {
   return results;
 }
 
-export async function loadResourceFiles(): Promise<ResourceFile[]> {
+function getRootFolder(): string {
   const folder = process.env.RESOURCES_FOLDER;
-  if (!folder) return [];
+  if (!folder) return '';
+  return folder.replace(/^~/, process.env.HOME || '');
+}
 
-  const expanded = folder.replace(/^~/, process.env.HOME || '');
-  if (!fs.existsSync(expanded)) return [];
+// Discovers all files without loading content — fast, used by GET
+export function discoverFiles(): ResourceFileInfo[] {
+  const expanded = getRootFolder();
+  if (!expanded || !fs.existsSync(expanded)) return [];
+  return collectFiles(expanded).map((fp) => ({ name: path.basename(fp), filePath: fp }));
+}
 
-  const allFiles = collectFiles(expanded);
+// Loads content only for the specified file paths — used by synthesize
+export async function loadSelectedFiles(filePaths: string[]): Promise<ResourceFile[]> {
   const results: ResourceFile[] = [];
+  let totalChars = 0;
 
-  for (const filePath of allFiles) {
+  for (const filePath of filePaths) {
+    if (totalChars >= TOTAL_CHAR_LIMIT) break;
     try {
       let content = '';
       if (/\.epub$/i.test(filePath)) {
         content = await readEpub(filePath);
       } else {
-        content = fs.readFileSync(filePath, 'utf-8').trim();
+        content = fs.readFileSync(filePath, 'utf-8').trim().slice(0, PER_FILE_CHAR_LIMIT);
       }
-      if (content) results.push({ name: path.basename(filePath), filePath, content });
+      if (content) {
+        const remaining = TOTAL_CHAR_LIMIT - totalChars;
+        const trimmed = content.slice(0, remaining);
+        results.push({ name: path.basename(filePath), filePath, content: trimmed });
+        totalChars += trimmed.length;
+      }
     } catch {
       // skip unreadable files
     }
@@ -94,12 +116,7 @@ export async function loadResourceFiles(): Promise<ResourceFile[]> {
 }
 
 export async function GET() {
-  const files = await loadResourceFiles();
-  const folder = process.env.RESOURCES_FOLDER
-    ? process.env.RESOURCES_FOLDER.replace(/^~/, process.env.HOME || '')
-    : '';
-  return Response.json({
-    folder,
-    files: files.map((f) => ({ name: f.name, filePath: f.filePath })),
-  });
+  const files = discoverFiles();
+  const folder = getRootFolder();
+  return Response.json({ folder, files });
 }

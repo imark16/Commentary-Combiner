@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest } from 'next/server';
-import { loadResourceFiles } from '../resources/route';
+import { loadSelectedFiles } from '../resources/route';
 
 const client = new Anthropic();
 
@@ -45,7 +45,7 @@ Format your response with clear markdown headings (##, ###), use bold for key te
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, depth } = await request.json();
+    const { text, depth, selectedFilePaths = [] } = await request.json();
 
     if (!text?.trim()) {
       return new Response('No commentary text provided.', { status: 400 });
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       return new Response('Invalid analysis depth.', { status: 400 });
     }
 
-    const resourceFiles = await loadResourceFiles();
+    const resourceFiles = await loadSelectedFiles(selectedFilePaths);
     const resourceSection = resourceFiles.length
       ? '\n\n--- SAVED RESOURCES (from your resources folder) ---\n\n' +
         resourceFiles.map((f) => `[Source file: ${f.name}]\n${f.content}`).join('\n\n')
