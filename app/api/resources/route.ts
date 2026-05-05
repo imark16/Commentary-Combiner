@@ -54,6 +54,18 @@ async function readEpub(filePath: string): Promise<string> {
   return text.slice(0, 40000);
 }
 
+function collectFiles(dir: string, results: string[] = []): string[] {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      collectFiles(full, results);
+    } else if (/\.(txt|md|epub)$/i.test(entry.name)) {
+      results.push(full);
+    }
+  }
+  return results;
+}
+
 export async function loadResourceFiles(): Promise<ResourceFile[]> {
   const folder = process.env.RESOURCES_FOLDER;
   if (!folder) return [];
@@ -61,19 +73,18 @@ export async function loadResourceFiles(): Promise<ResourceFile[]> {
   const expanded = folder.replace(/^~/, process.env.HOME || '');
   if (!fs.existsSync(expanded)) return [];
 
-  const entries = fs.readdirSync(expanded).filter((f) => /\.(txt|md|epub)$/i.test(f));
+  const allFiles = collectFiles(expanded);
   const results: ResourceFile[] = [];
 
-  for (const f of entries) {
-    const filePath = path.join(expanded, f);
+  for (const filePath of allFiles) {
     try {
       let content = '';
-      if (/\.epub$/i.test(f)) {
+      if (/\.epub$/i.test(filePath)) {
         content = await readEpub(filePath);
       } else {
         content = fs.readFileSync(filePath, 'utf-8').trim();
       }
-      if (content) results.push({ name: f, filePath, content });
+      if (content) results.push({ name: path.basename(filePath), filePath, content });
     } catch {
       // skip unreadable files
     }
