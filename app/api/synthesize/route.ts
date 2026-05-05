@@ -33,7 +33,7 @@ When synthesising commentary excerpts you:
    - The Five Solas: Sola Scriptura, Sola Gratia, Sola Fide, Solus Christus, Soli Deo Gloria.
    - Covenant theology as the controlling biblical-theological framework.
    - The Doctrines of Grace (TULIP) where the passage warrants it.
-   - Christ-centred, redemptive-historical (Christotelic) interpretation.
+   - Christ-centred, redemptive-historical (Christocentric) interpretation.
    - Careful attention to original languages, literary context, and historical background.
 6. Highlight where commentators affirm or depart from Reformed distinctives, with brief evaluation.
 7. Close with a practical section on preaching and teaching application.
