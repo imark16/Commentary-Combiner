@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       return new Response('Invalid analysis depth.', { status: 400 });
     }
 
-    const stream = await client.messages.stream({
+    const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: config.maxTokens,
       system: SYSTEM_PROMPT,
@@ -65,34 +65,13 @@ export async function POST(request: NextRequest) {
       ],
     });
 
-    const encoder = new TextEncoder();
-    const readable = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of stream) {
-            if (
-              chunk.type === 'content_block_delta' &&
-              chunk.delta.type === 'text_delta'
-            ) {
-              controller.enqueue(encoder.encode(chunk.delta.text));
-            }
-          }
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : 'Streaming error.';
-          controller.enqueue(encoder.encode(`\n\n[Error: ${msg}]`));
-        } finally {
-          controller.close();
-        }
-      },
-    });
+    const result = message.content
+      .filter((block) => block.type === 'text')
+      .map((block) => (block as { type: 'text'; text: string }).text)
+      .join('');
 
-    return new Response(readable, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
-        'X-Accel-Buffering': 'no',
-        'Transfer-Encoding': 'chunked',
-      },
+    return new Response(JSON.stringify({ result }), {
+      headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error.';

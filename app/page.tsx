@@ -64,16 +64,8 @@ export default function Home() {
         throw new Error(msg || 'Request failed.');
       }
 
-      const reader = res.body!.getReader();
-      const decoder = new TextDecoder();
-      let accumulated = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        accumulated += decoder.decode(value, { stream: true });
-        setSynthesis(accumulated);
-      }
+      const { result } = await res.json();
+      setSynthesis(result);
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== 'AbortError') {
         setError(err.message || 'Something went wrong. Please try again.');
