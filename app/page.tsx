@@ -5,6 +5,11 @@ import ReactMarkdown from 'react-markdown';
 
 type Depth = 'quick' | 'standard' | 'detailed';
 
+interface ResourceFileInfo {
+  name: string;
+  filePath: string;
+}
+
 const DEPTHS: { id: Depth; label: string; description: string; meta: string }[] = [
   {
     id: 'quick',
@@ -26,15 +31,19 @@ const DEPTHS: { id: Depth; label: string; description: string; meta: string }[] 
   },
 ];
 
+function fileUrl(filePath: string) {
+  return 'file://' + filePath.replace(/ /g, '%20');
+}
+
 export default function Home() {
   const [text, setText] = useState('');
   const [depth, setDepth] = useState<Depth>('standard');
   const [synthesis, setSynthesis] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [resourceFiles, setResourceFiles] = useState<string[]>([]);
+  const [resourceFiles, setResourceFiles] = useState<ResourceFileInfo[]>([]);
   const [resourceFolder, setResourceFolder] = useState('');
-  const [resourcesUsed, setResourcesUsed] = useState<string[]>([]);
+  const [resourcesUsed, setResourcesUsed] = useState<ResourceFileInfo[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -42,7 +51,7 @@ export default function Home() {
       .then((r) => r.json())
       .then(({ folder, files }) => {
         setResourceFolder(folder);
-        setResourceFiles(files);
+        setResourceFiles(files ?? []);
       })
       .catch(() => {});
   }, []);
@@ -57,7 +66,6 @@ export default function Home() {
     setSynthesis('');
     setResourcesUsed([]);
     setLoading(true);
-
     abortRef.current = new AbortController();
 
     try {
@@ -100,42 +108,42 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-3">
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">Commentary Synthesis</h1>
-            <p className="text-sm font-semibold text-[#c0392b]">#TruthMattersMost</p>
-          </div>
+        <div className="max-w-4xl mx-auto px-6 py-4">
+          <h1 className="text-xl font-bold text-gray-900">Commentary-Combiner</h1>
+          <p className="text-sm font-semibold text-[#c0392b]">#TruthMattersMost</p>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-8 space-y-6">
-        {/* Resources folder status */}
+        {/* Resources folder panel */}
         <section className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
           <h2 className="text-base font-bold text-gray-900 mb-1">Resources Folder</h2>
           {resourceFolder ? (
             <>
-              <p className="text-xs text-gray-500 font-mono break-all mb-2">{resourceFolder}</p>
+              <p className="text-xs text-gray-400 font-mono break-all mb-2">{resourceFolder}</p>
               {resourceFiles.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {resourceFiles.map((f) => (
-                    <span
-                      key={f}
-                      className="text-xs bg-green-50 text-green-700 border border-green-200 rounded px-2 py-0.5"
+                    <a
+                      key={f.name}
+                      href={fileUrl(f.filePath)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs bg-green-50 text-green-700 border border-green-200 rounded px-2 py-0.5 hover:bg-green-100 transition-colors"
                     >
-                      {f}
-                    </span>
+                      {f.name}
+                    </a>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-gray-400">No .txt or .md files found in folder.</p>
+                <p className="text-xs text-gray-400">No .txt, .md, or .epub files found in folder.</p>
               )}
             </>
           ) : (
             <p className="text-xs text-gray-400">
               No resources folder configured. Add{' '}
               <code className="bg-gray-100 px-1 rounded">RESOURCES_FOLDER=~/your/folder</code> to{' '}
-              <code className="bg-gray-100 px-1 rounded">.env.local</code> to include saved files
-              automatically.
+              <code className="bg-gray-100 px-1 rounded">.env.local</code> to include saved files automatically.
             </p>
           )}
         </section>
@@ -146,6 +154,7 @@ export default function Home() {
           <p className="text-sm text-gray-500 mb-4">
             Paste your commentary exports below. The tool will combine them with any files in your
             resources folder and synthesise the insights from a Reformed theological perspective.
+            All Scripture citations will use the ESV.
           </p>
 
           <textarea
@@ -230,14 +239,17 @@ export default function Home() {
 
             {resourcesUsed.length > 0 && (
               <div className="mb-4 flex flex-wrap gap-2 items-center">
-                <span className="text-xs text-gray-500">Resources included:</span>
+                <span className="text-xs text-gray-500">Sources included:</span>
                 {resourcesUsed.map((f) => (
-                  <span
-                    key={f}
-                    className="text-xs bg-green-50 text-green-700 border border-green-200 rounded px-2 py-0.5"
+                  <a
+                    key={f.name}
+                    href={fileUrl(f.filePath)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs bg-green-50 text-green-700 border border-green-200 rounded px-2 py-0.5 hover:bg-green-100 transition-colors"
                   >
-                    {f}
-                  </span>
+                    {f.name}
+                  </a>
                 ))}
               </div>
             )}

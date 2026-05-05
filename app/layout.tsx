@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Commentary Synthesis | #TruthMattersMost",
+  title: "Commentary-Combiner | #TruthMattersMost",
   description: "Synthesise biblical commentaries from a Reformed theological perspective.",
 };
 

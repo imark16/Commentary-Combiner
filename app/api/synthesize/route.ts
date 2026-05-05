@@ -26,7 +26,7 @@ const SYSTEM_PROMPT = `You are a senior Reformed biblical scholar with deep expe
 
 When synthesising commentary excerpts you:
 1. Identify the biblical passage(s) under discussion.
-2. Detect and attribute each commentary source (use the author/title if discernible, otherwise label them Source A, Source B, etc.).
+2. Detect and attribute each commentary source (use the author/title if discernible, otherwise label them Source A, Source B, etc.). When a source comes from a named file, always refer to it by that filename so it can be traced back.
 3. Surface the major interpretive themes and where the commentators agree.
 4. Note significant disagreements or differing emphases with charity.
 5. Evaluate every insight through a confessionally Reformed theological lens, drawing on:
@@ -38,6 +38,8 @@ When synthesising commentary excerpts you:
    - Careful attention to original languages, literary context, and historical background.
 6. Highlight where commentators affirm or depart from Reformed distinctives, with brief evaluation.
 7. Close with a practical section on preaching and teaching application.
+
+IMPORTANT — Bible citations: Always quote Scripture using the English Standard Version (ESV). When referencing a verse, include the ESV text in full where possible.
 
 Format your response with clear markdown headings (##, ###), use bold for key terms, and write bullet lists where they aid clarity. Be scholarly yet pastorally warm.`;
 
@@ -54,10 +56,10 @@ export async function POST(request: NextRequest) {
       return new Response('Invalid analysis depth.', { status: 400 });
     }
 
-    const resourceFiles = loadResourceFiles();
+    const resourceFiles = await loadResourceFiles();
     const resourceSection = resourceFiles.length
       ? '\n\n--- SAVED RESOURCES (from your resources folder) ---\n\n' +
-        resourceFiles.map((f) => `[${f.name}]\n${f.content}`).join('\n\n')
+        resourceFiles.map((f) => `[Source file: ${f.name}]\n${f.content}`).join('\n\n')
       : '';
 
     const message = await client.messages.create({
@@ -77,14 +79,16 @@ export async function POST(request: NextRequest) {
       .map((block) => (block as { type: 'text'; text: string }).text)
       .join('');
 
-    return new Response(JSON.stringify({ result, resourcesUsed: resourceFiles.map((f) => f.name) }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        result,
+        resourcesUsed: resourceFiles.map((f) => ({ name: f.name, filePath: f.filePath })),
+      }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error.';
     console.error('Synthesis error:', msg);
-    return new Response(`Failed to generate synthesis: ${msg}`, {
-      status: 500,
-    });
+    return new Response(`Failed to generate synthesis: ${msg}`, { status: 500 });
   }
 }
