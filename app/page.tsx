@@ -1,16 +1,11 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 
 type Depth = 'quick' | 'standard' | 'detailed';
 
-const DEPTHS: {
-  id: Depth;
-  label: string;
-  description: string;
-  meta: string;
-}[] = [
+const DEPTHS: { id: Depth; label: string; description: string; meta: string }[] = [
   {
     id: 'quick',
     label: 'Quick',
@@ -37,7 +32,20 @@ export default function Home() {
   const [synthesis, setSynthesis] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [resourceFiles, setResourceFiles] = useState<string[]>([]);
+  const [resourceFolder, setResourceFolder] = useState('');
+  const [resourcesUsed, setResourcesUsed] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    fetch('/api/resources')
+      .then((r) => r.json())
+      .then(({ folder, files }) => {
+        setResourceFolder(folder);
+        setResourceFiles(files);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleGenerate = useCallback(async () => {
     if (!text.trim()) {
@@ -47,6 +55,7 @@ export default function Home() {
 
     setError('');
     setSynthesis('');
+    setResourcesUsed([]);
     setLoading(true);
 
     abortRef.current = new AbortController();
@@ -64,8 +73,9 @@ export default function Home() {
         throw new Error(msg || 'Request failed.');
       }
 
-      const { result } = await res.json();
+      const { result, resourcesUsed: used } = await res.json();
       setSynthesis(result);
+      setResourcesUsed(used ?? []);
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== 'AbortError') {
         setError(err.message || 'Something went wrong. Please try again.');
@@ -84,11 +94,11 @@ export default function Home() {
     setText('');
     setSynthesis('');
     setError('');
+    setResourcesUsed([]);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-3">
           <div>
@@ -99,13 +109,43 @@ export default function Home() {
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-8 space-y-6">
+        {/* Resources folder status */}
+        <section className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <h2 className="text-base font-bold text-gray-900 mb-1">Resources Folder</h2>
+          {resourceFolder ? (
+            <>
+              <p className="text-xs text-gray-500 font-mono break-all mb-2">{resourceFolder}</p>
+              {resourceFiles.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {resourceFiles.map((f) => (
+                    <span
+                      key={f}
+                      className="text-xs bg-green-50 text-green-700 border border-green-200 rounded px-2 py-0.5"
+                    >
+                      {f}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400">No .txt or .md files found in folder.</p>
+              )}
+            </>
+          ) : (
+            <p className="text-xs text-gray-400">
+              No resources folder configured. Add{' '}
+              <code className="bg-gray-100 px-1 rounded">RESOURCES_FOLDER=~/your/folder</code> to{' '}
+              <code className="bg-gray-100 px-1 rounded">.env.local</code> to include saved files
+              automatically.
+            </p>
+          )}
+        </section>
+
         {/* Input card */}
         <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
           <h2 className="text-xl font-bold text-gray-900 mb-1">Commentary Input</h2>
           <p className="text-sm text-gray-500 mb-4">
-            Paste your Logos commentary exports below. You can include as many commentaries as you
-            like. The tool will automatically detect sources and synthesise the insights from a
-            Reformed theological perspective.
+            Paste your commentary exports below. The tool will combine them with any files in your
+            resources folder and synthesise the insights from a Reformed theological perspective.
           </p>
 
           <textarea
@@ -119,7 +159,6 @@ export default function Home() {
             {text.length.toLocaleString()} characters
           </div>
 
-          {/* Depth selector */}
           <h3 className="text-base font-bold text-gray-900 mt-5 mb-3">Analysis Depth</h3>
           <div className="space-y-2">
             {DEPTHS.map((d) => (
@@ -155,14 +194,11 @@ export default function Home() {
             </p>
           )}
 
-          {/* Actions */}
           <div className="flex gap-3 mt-6">
             <button
               onClick={loading ? handleStop : handleGenerate}
               className={`px-6 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors ${
-                loading
-                  ? 'bg-gray-500 hover:bg-gray-600'
-                  : 'bg-[#c0392b] hover:bg-[#a93226]'
+                loading ? 'bg-gray-500 hover:bg-gray-600' : 'bg-[#c0392b] hover:bg-[#a93226]'
               }`}
             >
               {loading ? 'Stop' : 'Generate Synthesis'}
@@ -192,6 +228,20 @@ export default function Home() {
               )}
             </div>
 
+            {resourcesUsed.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-2 items-center">
+                <span className="text-xs text-gray-500">Resources included:</span>
+                {resourcesUsed.map((f) => (
+                  <span
+                    key={f}
+                    className="text-xs bg-green-50 text-green-700 border border-green-200 rounded px-2 py-0.5"
+                  >
+                    {f}
+                  </span>
+                ))}
+              </div>
+            )}
+
             {loading && !synthesis && (
               <div className="flex items-center gap-2 text-sm text-gray-500 py-8 justify-center">
                 <span className="inline-block w-4 h-4 border-2 border-[#c0392b] border-t-transparent rounded-full animate-spin" />
@@ -200,14 +250,9 @@ export default function Home() {
             )}
 
             {synthesis && (
-              <>
-                <article className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-headings:font-bold prose-p:text-gray-700 prose-li:text-gray-700 prose-strong:text-gray-900 prose-a:text-[#c0392b]">
-                  <ReactMarkdown>{synthesis}</ReactMarkdown>
-                </article>
-                {loading && (
-                  <span className="inline-block w-2 h-4 bg-[#c0392b] animate-pulse ml-0.5" />
-                )}
-              </>
+              <article className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-headings:font-bold prose-p:text-gray-700 prose-li:text-gray-700 prose-strong:text-gray-900 prose-a:text-[#c0392b]">
+                <ReactMarkdown>{synthesis}</ReactMarkdown>
+              </article>
             )}
           </section>
         )}

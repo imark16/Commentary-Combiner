@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest } from 'next/server';
+import { loadResourceFiles } from '../resources/route';
 
 const client = new Anthropic();
 
@@ -53,6 +54,12 @@ export async function POST(request: NextRequest) {
       return new Response('Invalid analysis depth.', { status: 400 });
     }
 
+    const resourceFiles = loadResourceFiles();
+    const resourceSection = resourceFiles.length
+      ? '\n\n--- SAVED RESOURCES (from your resources folder) ---\n\n' +
+        resourceFiles.map((f) => `[${f.name}]\n${f.content}`).join('\n\n')
+      : '';
+
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: config.maxTokens,
@@ -60,7 +67,7 @@ export async function POST(request: NextRequest) {
       messages: [
         {
           role: 'user',
-          content: `Please synthesise the following biblical commentary excerpts from a Reformed theological perspective.\n\n${config.instruction}\n\n---\n\n${text}`,
+          content: `Please synthesise the following biblical commentary excerpts from a Reformed theological perspective.\n\n${config.instruction}\n\n--- PASTED COMMENTARY ---\n\n${text}${resourceSection}`,
         },
       ],
     });
@@ -70,7 +77,7 @@ export async function POST(request: NextRequest) {
       .map((block) => (block as { type: 'text'; text: string }).text)
       .join('');
 
-    return new Response(JSON.stringify({ result }), {
+    return new Response(JSON.stringify({ result, resourcesUsed: resourceFiles.map((f) => f.name) }), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
