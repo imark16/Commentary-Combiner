@@ -16,11 +16,55 @@ interface CachedBook {
   text: string;
 }
 
+interface PersistedIndex {
+  builtAt: string;
+  resourcesFolder: string;
+  books: CachedBook[];
+}
+
 // Module-level state — lives as long as the dev server runs
 let cache: CachedBook[] = [];
 let indexed = 0;
 let total = 0;
 let building = false;
+let builtAt: string | null = null;
+
+const INDEX_PATH = path.join(process.cwd(), '.search-index.json');
+
+function loadPersistedIndex(): boolean {
+  try {
+    if (!fs.existsSync(INDEX_PATH)) return false;
+    const raw = fs.readFileSync(INDEX_PATH, 'utf-8');
+    const data: PersistedIndex = JSON.parse(raw);
+    const folder = process.env.RESOURCES_FOLDER?.replace(/^~/, process.env.HOME || '');
+    // Only load if it was built from the same folder
+    if (data.resourcesFolder !== folder) return false;
+    cache = data.books;
+    indexed = cache.length;
+    total = cache.length;
+    builtAt = data.builtAt;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function savePersistedIndex(folder: string) {
+  try {
+    const data: PersistedIndex = {
+      builtAt: new Date().toISOString(),
+      resourcesFolder: folder,
+      books: cache,
+    };
+    fs.writeFileSync(INDEX_PATH, JSON.stringify(data), 'utf-8');
+    builtAt = data.builtAt;
+  } catch {
+    // Non-fatal — index still works in memory
+  }
+}
+
+// Load from disk on first import
+loadPersistedIndex();
 
 function stripHtml(html: string): string {
   return html
@@ -73,7 +117,7 @@ function collectFiles(dir: string, results: string[] = []): string[] {
   return results;
 }
 
-async function buildIndex(filePaths: string[]) {
+async function buildIndex(filePaths: string[], folder: string) {
   if (building) return;
   building = true;
   cache = [];
@@ -96,10 +140,11 @@ async function buildIndex(filePaths: string[]) {
     indexed++;
   }
   building = false;
+  savePersistedIndex(folder);
 }
 
 export async function GET() {
-  return Response.json({ indexed, total, building, ready: !building && indexed > 0 && indexed === total });
+  return Response.json({ indexed, total, building, ready: !building && indexed > 0 && indexed === total, builtAt });
 }
 
 export async function POST(request: NextRequest) {
@@ -112,7 +157,7 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'No resources folder configured.' }, { status: 400 });
     }
     const files = collectFiles(folder);
-    buildIndex(files); // fire and forget
+    buildIndex(files, folder); // fire and forget
     return Response.json({ started: true, total: files.length });
   }
 

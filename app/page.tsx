@@ -10,7 +10,7 @@ type VaultTab = 'find' | 'ask';
 interface FileInfo { name: string; filePath: string; }
 interface NoteInfo { name: string; filePath: string; relativePath: string; matchCount: number; snippets: string[]; }
 interface LibResult extends FileInfo { matchCount: number; snippets: string[]; }
-interface IndexStatus { indexed: number; total: number; building: boolean; ready: boolean; }
+interface IndexStatus { indexed: number; total: number; building: boolean; ready: boolean; builtAt?: string | null; }
 interface VaultStatus { connected: boolean; vaultPath: string; noteCount: number | null; cacheBuilding: boolean; }
 
 const DEPTHS: { id: Depth; label: string; description: string; meta: string }[] = [
@@ -225,7 +225,7 @@ export default function Home() {
                     {idxStatus.building
                       ? <div className="flex items-center gap-2 text-sm text-green-800"><span className="inline-block w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />Indexing {idxStatus.indexed} of {idxStatus.total}…</div>
                       : idxStatus.ready
-                        ? <span className="text-sm text-green-800 font-medium">✓ {idxStatus.indexed} books indexed</span>
+                        ? <span className="text-sm text-green-800 font-medium">✓ {idxStatus.indexed} books indexed{idxStatus.builtAt ? ` · built ${new Date(idxStatus.builtAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}</span>
                         : <span className="text-sm text-green-700">Index not built yet.</span>}
                     <button onClick={handleBuildIndex} disabled={idxStatus.building}
                       className="ml-auto text-xs px-3 py-1.5 bg-green-700 text-white rounded-lg hover:bg-green-800 disabled:opacity-50 transition-colors">
