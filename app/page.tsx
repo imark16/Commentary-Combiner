@@ -42,6 +42,13 @@ export default function Home() {
   const [vaultNotesUsed, setVaultNotesUsed] = useState<FileInfo[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
+  // ── Save / Word export ──
+  const [savedMdPath, setSavedMdPath]   = useState('');
+  const [savedFilename, setSavedFilename] = useState('');
+  const [saveError, setSaveError]       = useState('');
+  const [exportingWord, setExportingWord] = useState(false);
+  const [wordDone, setWordDone]         = useState(false);
+
   // ── Resources Library ──
   const [libOpen, setLibOpen]           = useState(false);
   const [libTab, setLibTab]             = useState<LibTab>('browse');
@@ -152,7 +159,9 @@ export default function Home() {
   // ── Synthesis handler ──
   const handleGenerate = useCallback(async () => {
     if (!text.trim()) { setGenError('Please paste some commentary text first.'); return; }
-    setGenError(''); setSynthesis(''); setResourcesUsed([]); setVaultNotesUsed([]); setLoadingGen(true);
+    setGenError(''); setSynthesis(''); setResourcesUsed([]); setVaultNotesUsed([]);
+    setSavedMdPath(''); setSavedFilename(''); setSaveError(''); setWordDone(false);
+    setLoadingGen(true);
     abortRef.current = new AbortController();
     try {
       const res = await fetch('/api/synthesize', {
@@ -164,13 +173,28 @@ export default function Home() {
       if (!res.ok) throw new Error(await res.text() || 'Request failed.');
       const { result, resourcesUsed: ru, vaultNotesUsed: vu } = await res.json();
       setSynthesis(result); setResourcesUsed(ru ?? []); setVaultNotesUsed(vu ?? []);
+      // Auto-save markdown
+      const saveRes = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ result }) });
+      const saveData = await saveRes.json();
+      if (saveData.ok) { setSavedMdPath(saveData.mdPath); setSavedFilename(saveData.filename); }
+      else setSaveError(saveData.error ?? 'Could not save file.');
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== 'AbortError')
         setGenError(err.message || 'Something went wrong.');
     } finally { setLoadingGen(false); }
   }, [text, depth, selectedPaths, selectedVaultPaths]);
 
-  const handleClear = () => { setText(''); setSynthesis(''); setGenError(''); setResourcesUsed([]); setVaultNotesUsed([]); };
+  const handleExportWord = async () => {
+    if (!savedMdPath) return;
+    setExportingWord(true); setWordDone(false);
+    const res = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'word', mdPath: savedMdPath }) });
+    const d = await res.json();
+    setExportingWord(false);
+    if (d.ok) setWordDone(true);
+    else setSaveError(d.error ?? 'Word export failed.');
+  };
+
+  const handleClear = () => { setText(''); setSynthesis(''); setGenError(''); setResourcesUsed([]); setVaultNotesUsed([]); setSavedMdPath(''); setSavedFilename(''); setSaveError(''); setWordDone(false); };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -447,10 +471,24 @@ export default function Home() {
         {/* ══ Results ══ */}
         {(synthesis || loadingGen) && (
           <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
               <h2 className="text-xl font-bold text-gray-900">Reformed Synthesis</h2>
               {synthesis && !loadingGen && (
-                <button onClick={() => navigator.clipboard.writeText(synthesis)} className="text-xs text-[#c0392b] hover:text-[#a93226] font-medium">Copy to clipboard</button>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <button onClick={() => navigator.clipboard.writeText(synthesis)} className="text-xs text-[#c0392b] hover:text-[#a93226] font-medium">Copy to clipboard</button>
+                  {savedFilename && (
+                    <span className="text-xs text-gray-500">
+                      Saved: <OpenLink filePath={savedMdPath} className="underline text-gray-700 hover:text-gray-900 cursor-pointer">{savedFilename}</OpenLink>
+                    </span>
+                  )}
+                  {savedMdPath && (
+                    <button onClick={handleExportWord} disabled={exportingWord}
+                      className="text-xs px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                      {exportingWord ? 'Opening…' : wordDone ? '✓ Opened in Word' : 'Save as Word'}
+                    </button>
+                  )}
+                  {saveError && <span className="text-xs text-red-600">{saveError}</span>}
+                </div>
               )}
             </div>
 
