@@ -19,7 +19,17 @@ const DEPTHS: { id: Depth; label: string; description: string; meta: string }[] 
   { id: 'detailed', label: 'Detailed', description: 'Comprehensive with quotes',        meta: 'Up to 18 000 words · Best for large inputs (15 000+ words)' },
 ];
 
-function fileUrl(fp: string) { return 'file://' + fp.replace(/ /g, '%20'); }
+async function openFile(filePath: string) {
+  await fetch('/api/open', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filePath }) });
+}
+
+function OpenLink({ filePath, className, children }: { filePath: string; className?: string; children: React.ReactNode }) {
+  return (
+    <button onClick={() => openFile(filePath)} className={className} title={filePath}>
+      {children}
+    </button>
+  );
+}
 
 export default function Home() {
   // ── Synthesis ──
@@ -211,7 +221,7 @@ export default function Home() {
                     {filteredFiles.map(f => (
                       <label key={f.filePath} className={`flex items-center gap-1.5 text-xs border rounded px-2 py-1 cursor-pointer transition-colors ${selectedPaths.has(f.filePath) ? 'bg-green-600 text-white border-green-700' : 'bg-white text-green-800 border-green-300 hover:bg-green-100'}`}>
                         <input type="checkbox" className="sr-only" checked={selectedPaths.has(f.filePath)} onChange={() => toggleFile(f.filePath)} />
-                        <a href={fileUrl(f.filePath)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="underline opacity-70 hover:opacity-100">↗</a>
+                        <OpenLink filePath={f.filePath} className="underline opacity-70 hover:opacity-100 cursor-pointer">↗</OpenLink>
                         {f.name}
                       </label>
                     ))}
@@ -249,7 +259,7 @@ export default function Home() {
                         <div key={r.filePath} className="bg-white border border-green-200 rounded-lg p-3 space-y-2">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <a href={fileUrl(r.filePath)} target="_blank" rel="noreferrer" className="text-sm font-semibold text-green-900 hover:underline">{r.name}</a>
+                              <OpenLink filePath={r.filePath} className="text-sm font-semibold text-green-900 hover:underline cursor-pointer">{r.name}</OpenLink>
                               <span className="text-xs bg-green-100 text-green-700 rounded px-1.5 py-0.5">{r.matchCount} match{r.matchCount !== 1 ? 'es' : ''}</span>
                             </div>
                             <button onClick={() => toggleFile(r.filePath)}
@@ -336,7 +346,7 @@ export default function Home() {
                             <div key={r.filePath} className="bg-white border border-indigo-200 rounded-lg p-3 space-y-2">
                               <div className="flex items-start justify-between gap-2">
                                 <div>
-                                  <a href={fileUrl(r.filePath)} target="_blank" rel="noreferrer" className="text-sm font-semibold text-indigo-900 hover:underline">{r.name}</a>
+                                  <OpenLink filePath={r.filePath} className="text-sm font-semibold text-indigo-900 hover:underline cursor-pointer">{r.name}</OpenLink>
                                   <p className="text-xs text-indigo-400 mt-0.5">{r.relativePath}</p>
                                 </div>
                                 <button onClick={() => addVaultResult(r.filePath)}
@@ -377,8 +387,8 @@ export default function Home() {
                             <div className="flex flex-wrap gap-2 items-center">
                               <span className="text-xs text-indigo-600">Notes consulted:</span>
                               {vaultAskNotes.map(n => (
-                                <a key={n.filePath} href={fileUrl(n.filePath)} target="_blank" rel="noreferrer"
-                                  className="text-xs bg-indigo-100 text-indigo-700 border border-indigo-200 rounded px-2 py-0.5 hover:bg-indigo-200">{n.name}</a>
+                                <OpenLink key={n.filePath} filePath={n.filePath}
+                                  className="text-xs bg-indigo-100 text-indigo-700 border border-indigo-200 rounded px-2 py-0.5 hover:bg-indigo-200 cursor-pointer">{n.name}</OpenLink>
                               ))}
                             </div>
                           )}
@@ -449,13 +459,13 @@ export default function Home() {
                 {resourcesUsed.length > 0 && (
                   <div className="flex flex-wrap gap-2 items-center">
                     <span className="text-xs text-gray-500">Books used:</span>
-                    {resourcesUsed.map(f => <a key={f.filePath} href={fileUrl(f.filePath)} target="_blank" rel="noreferrer" className="text-xs bg-green-50 text-green-700 border border-green-200 rounded px-2 py-0.5 hover:bg-green-100">{f.name}</a>)}
+                    {resourcesUsed.map(f => <OpenLink key={f.filePath} filePath={f.filePath} className="text-xs bg-green-50 text-green-700 border border-green-200 rounded px-2 py-0.5 hover:bg-green-100 cursor-pointer">{f.name}</OpenLink>)}
                   </div>
                 )}
                 {vaultNotesUsed.length > 0 && (
                   <div className="flex flex-wrap gap-2 items-center">
                     <span className="text-xs text-gray-500">Vault notes used:</span>
-                    {vaultNotesUsed.map(n => <a key={n.filePath} href={fileUrl(n.filePath)} target="_blank" rel="noreferrer" className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 rounded px-2 py-0.5 hover:bg-indigo-100">{n.name}</a>)}
+                    {vaultNotesUsed.map(n => <OpenLink key={n.filePath} filePath={n.filePath} className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 rounded px-2 py-0.5 hover:bg-indigo-100 cursor-pointer">{n.name}</OpenLink>)}
                   </div>
                 )}
               </div>
