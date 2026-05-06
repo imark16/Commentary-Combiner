@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest } from 'next/server';
 import { loadSelectedFiles } from '../resources/route';
+import { loadVaultNotes } from '../vault/route';
 
 const client = new Anthropic();
 
@@ -45,7 +46,7 @@ Format your response with clear markdown headings (##, ###), use bold for key te
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, depth, selectedFilePaths = [] } = await request.json();
+    const { text, depth, selectedFilePaths = [], selectedVaultPaths = [] } = await request.json();
 
     if (!text?.trim()) {
       return new Response('No commentary text provided.', { status: 400 });
@@ -56,10 +57,19 @@ export async function POST(request: NextRequest) {
       return new Response('Invalid analysis depth.', { status: 400 });
     }
 
-    const resourceFiles = await loadSelectedFiles(selectedFilePaths);
+    const [resourceFiles, vaultNotes] = await Promise.all([
+      loadSelectedFiles(selectedFilePaths),
+      loadVaultNotes(selectedVaultPaths),
+    ]);
+
     const resourceSection = resourceFiles.length
       ? '\n\n--- SAVED RESOURCES (from your resources folder) ---\n\n' +
         resourceFiles.map((f) => `[Source file: ${f.name}]\n${f.content}`).join('\n\n')
+      : '';
+
+    const vaultSection = vaultNotes.length
+      ? '\n\n--- PERSONAL STUDY NOTES (from your Obsidian vault) ---\n\n' +
+        vaultNotes.map((n) => `[Vault note: ${n.name}]\n${n.text}`).join('\n\n')
       : '';
 
     const message = await client.messages.create({
@@ -69,7 +79,7 @@ export async function POST(request: NextRequest) {
       messages: [
         {
           role: 'user',
-          content: `Please synthesise the following biblical commentary excerpts from a Reformed theological perspective.\n\n${config.instruction}\n\n--- PASTED COMMENTARY ---\n\n${text}${resourceSection}`,
+          content: `Please synthesise the following biblical commentary excerpts from a Reformed theological perspective.\n\n${config.instruction}\n\n--- PASTED COMMENTARY ---\n\n${text}${resourceSection}${vaultSection}`,
         },
       ],
     });
@@ -83,6 +93,7 @@ export async function POST(request: NextRequest) {
       JSON.stringify({
         result,
         resourcesUsed: resourceFiles.map((f) => ({ name: f.name, filePath: f.filePath })),
+        vaultNotesUsed: vaultNotes.map((n) => ({ name: n.name, filePath: n.filePath })),
       }),
       { headers: { 'Content-Type': 'application/json' } }
     );
