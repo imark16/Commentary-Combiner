@@ -152,12 +152,13 @@ export async function POST(request: NextRequest) {
 
   // Trigger index build
   if (body.action === 'build') {
-    const folder = process.env.RESOURCES_FOLDER?.replace(/^~/, process.env.HOME || '');
-    if (!folder || !fs.existsSync(folder)) {
-      return Response.json({ error: 'No resources folder configured.' }, { status: 400 });
-    }
-    const files = collectFiles(folder);
-    buildIndex(files, folder); // fire and forget
+    const raw = process.env.RESOURCES_FOLDER;
+    if (!raw) return Response.json({ error: 'No resources folder configured.' }, { status: 400 });
+    const folders = raw.split(',').map(f => f.trim().replace(/^~/, process.env.HOME || '')).filter(f => f && fs.existsSync(f));
+    if (!folders.length) return Response.json({ error: 'No resources folder configured.' }, { status: 400 });
+    const files: string[] = [];
+    for (const folder of folders) collectFiles(folder, files);
+    buildIndex(files, folders.join(',')); // fire and forget
     return Response.json({ started: true, total: files.length });
   }
 

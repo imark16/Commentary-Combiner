@@ -74,17 +74,22 @@ function collectFiles(dir: string, results: string[] = []): string[] {
   return results;
 }
 
-function getRootFolder(): string {
-  const folder = process.env.RESOURCES_FOLDER;
-  if (!folder) return '';
-  return folder.replace(/^~/, process.env.HOME || '');
+function getRootFolders(): string[] {
+  const raw = process.env.RESOURCES_FOLDER;
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map(f => f.trim().replace(/^~/, process.env.HOME || ''))
+    .filter(f => f && fs.existsSync(f));
 }
 
 // Discovers all files without loading content — fast, used by GET
 export function discoverFiles(): ResourceFileInfo[] {
-  const expanded = getRootFolder();
-  if (!expanded || !fs.existsSync(expanded)) return [];
-  return collectFiles(expanded).map((fp) => ({ name: path.basename(fp), filePath: fp }));
+  const results: ResourceFileInfo[] = [];
+  for (const folder of getRootFolders()) {
+    collectFiles(folder).forEach(fp => results.push({ name: path.basename(fp), filePath: fp }));
+  }
+  return results;
 }
 
 // Loads content only for the specified file paths — used by synthesize
@@ -117,6 +122,6 @@ export async function loadSelectedFiles(filePaths: string[]): Promise<ResourceFi
 
 export async function GET() {
   const files = discoverFiles();
-  const folder = getRootFolder();
-  return Response.json({ folder, files });
+  const folders = getRootFolders();
+  return Response.json({ folder: folders.join(', '), files });
 }
