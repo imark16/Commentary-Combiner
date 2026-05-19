@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sermon Research — Spring Hills Presbyterian</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal:        #2F7E86;
+      --teal-dark:   #1F6068;
+      --teal-light:  #EDF6F7;
+      --teal-border: #B5D5D9;
+      --olive:       #5A7835;
+      --gold:        #C49A2A;
+      --gray-50:     #f9fafb;
+      --gray-100:    #f3f4f6;
+      --gray-200:    #e5e7eb;
+      --gray-300:    #d1d5db;
+      --gray-400:    #9ca3af;
+      --gray-500:    #6b7280;
+      --gray-700:    #374151;
+      --gray-800:    #1f2937;
+      --gray-900:    #111827;
+      --white:       #ffffff;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-900);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .header-inner {
+      max-width: 52rem;
+      margin: 0 auto;
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+    }
+    .header-text h1 { font-size: 1.2rem; font-weight: 700; color: var(--gray-900); }
+    .header-text p  { font-size: 0.75rem; font-weight: 600; color: var(--teal); margin-top: 0.1rem; }
+
+    /* ── Main layout ── */
+    main {
+      max-width: 52rem;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    /* ── API key card ── */
+    .api-card {
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      border-radius: 0.75rem;
+      padding: 1.25rem 1.5rem;
+    }
+    .api-card label {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gray-500);
+      margin-bottom: 0.5rem;
+    }
+    .api-row { display: flex; gap: 0.5rem; align-items: center; }
+    .api-row input {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--gray-300);
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+      background: var(--white);
+      outline: none;
+    }
+    .api-row input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(47,126,134,0.15); }
+    .api-note { font-size: 0.75rem; color: var(--gray-400); margin-top: 0.4rem; }
+    .api-saved { color: #16a34a; }
+
+    /* ── Session strip ── */
+    .session-strip {
+      background: var(--teal-light);
+      border: 1px solid var(--teal-border);
+      border-radius: 0.75rem;
+      padding: 1rem 1.5rem;
+    }
+    .session-strip .strip-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--teal-dark);
+      margin-bottom: 0.65rem;
+    }
+    .session-strip .strip-row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .session-strip .strip-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      flex: 1;
+      min-width: 10rem;
+    }
+    .session-strip .strip-field label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--teal-dark);
+    }
+    .session-strip .strip-field input {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--teal-border);
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      font-family: inherit;
+      background: var(--white);
+      color: var(--gray-900);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .session-strip .strip-field input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(47,126,134,0.15);
+    }
+    .session-strip .strip-field.narrow { max-width: 12rem; }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid var(--teal);
+      margin-bottom: 1.25rem;
+    }
+
+    /* ── Form fields ── */
+    .field { display: flex; flex-direction: column; gap: 0.35rem; }
+    .field label { font-size: 0.85rem; font-weight: 600; color: var(--gray-700); }
+    .field label .opt { font-weight: 400; color: var(--gray-400); font-size: 0.78rem; }
+    .field input,
+    .field select,
+    .field textarea {
+      padding: 0.55rem 0.75rem;
+      border: 1px solid var(--gray-300);
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      font-family: inherit;
+      background: var(--white);
+      color: var(--gray-900);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(47,126,134,0.15);
+    }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 560px) { .grid-2 { grid-template-columns: 1fr; } }
+    .fields-stack { display: flex; flex-direction: column; gap: 1rem; }
+
+    /* ── Checkboxes ── */
+    .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1.5rem; }
+    @media (max-width: 460px) { .checkbox-grid { grid-template-columns: 1fr; } }
+    .check-label {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.88rem; color: var(--gray-700);
+      cursor: pointer; user-select: none;
+    }
+    .check-label input[type="checkbox"] {
+      accent-color: var(--teal); width: 1rem; height: 1rem; cursor: pointer; flex-shrink: 0;
+    }
+    .checkbox-hint { font-size: 0.75rem; color: var(--gray-400); margin-bottom: 0.75rem; }
+
+    /* ── Depth selector ── */
+    .depth-options { display: flex; flex-direction: column; gap: 0.5rem; }
+    .depth-option {
+      display: flex; align-items: flex-start; gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--gray-200); border-radius: 0.5rem;
+      background: var(--gray-50); cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .depth-option:hover { background: var(--gray-100); }
+    .depth-option.selected { border-color: var(--teal); background: var(--teal-light); }
+    .depth-option input[type="radio"] { accent-color: var(--teal); margin-top: 0.1rem; flex-shrink: 0; }
+    .depth-option .depth-label { font-size: 0.9rem; font-weight: 600; color: var(--gray-900); }
+    .depth-option .depth-desc  { font-size: 0.85rem; color: var(--gray-700); }
+    .depth-option .depth-meta  { font-size: 0.75rem; color: var(--gray-400); margin-top: 0.15rem; }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      padding: 0.65rem 1.5rem; background: var(--teal); color: var(--white);
+      border: none; border-radius: 0.5rem; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: background 0.15s;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--teal-dark); }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-primary.stopping { background: #6b7280; }
+    .btn-primary.stopping:hover { background: #4b5563; }
+    .btn-secondary {
+      padding: 0.65rem 1.5rem; background: var(--white); color: var(--gray-700);
+      border: 1px solid var(--gray-300); border-radius: 0.5rem; font-size: 0.9rem;
+      font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s;
+    }
+    .btn-secondary:hover:not(:disabled) { background: var(--gray-100); }
+    .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-sm {
+      padding: 0.35rem 0.75rem; font-size: 0.8rem; font-weight: 600;
+      border-radius: 0.4rem; border: none; cursor: pointer; font-family: inherit;
+    }
+    .btn-row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+
+    /* ── Error box ── */
+    .error-box {
+      background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
+      border-radius: 0.5rem; padding: 0.75rem 1rem; font-size: 0.85rem; margin-top: 1rem;
+    }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block; width: 1rem; height: 1rem;
+      border: 2px solid var(--teal); border-top-color: transparent;
+      border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-row {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 2.5rem 0; justify-content: center; color: var(--gray-500); font-size: 0.9rem;
+    }
+
+    /* ── Results ── */
+    #results-section { display: none; }
+    .results-header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem;
+    }
+    .card-title { font-size: 1.1rem; font-weight: 700; color: var(--gray-900); }
+
+    /* ── Prose ── */
+    .prose { font-size: 0.9rem; line-height: 1.7; color: var(--gray-800); }
+    .prose h1 { font-size: 1.4rem; font-weight: 700; color: var(--teal); margin: 1.5rem 0 0.5rem; }
+    .prose h2 { font-size: 1.15rem; font-weight: 700; color: var(--olive); margin: 1.5rem 0 0.4rem; border-bottom: 1px solid var(--gray-200); padding-bottom: 0.3rem; }
+    .prose h3 { font-size: 1rem; font-weight: 700; color: var(--teal-dark); margin: 1.2rem 0 0.3rem; }
+    .prose h4 { font-size: 0.9rem; font-weight: 700; color: var(--gold); margin: 1rem 0 0.25rem; }
+    .prose p  { margin: 0.65rem 0; }
+    .prose ul, .prose ol { margin: 0.5rem 0 0.5rem 1.5rem; }
+    .prose li { margin: 0.3rem 0; }
+    .prose blockquote {
+      border-left: 3px solid var(--teal); margin: 1rem 0;
+      padding: 0.6rem 1rem; background: var(--teal-light);
+      color: var(--gray-700); font-style: italic;
+      font-family: Georgia, 'Times New Roman', serif;
+      border-radius: 0 0.4rem 0.4rem 0;
+    }
+    .prose strong { color: var(--gray-900); }
+    .prose em { color: var(--gray-700); }
+    .prose hr { border: none; border-top: 1px solid var(--gray-200); margin: 1.5rem 0; }
+
+    /* ── Link-style buttons ── */
+    .link-btn {
+      background: none; border: none; cursor: pointer; font-family: inherit;
+      font-size: 0.78rem; font-weight: 600; color: var(--teal);
+      text-decoration: underline; padding: 0;
+    }
+    .link-btn:hover { color: var(--teal-dark); }
+    .link-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .link-btn.muted { color: var(--gray-500); }
+    .link-btn.muted:hover { color: var(--gray-700); }
+    .link-btn.send { color: #1d4ed8; }
+    .link-btn.send:hover { color: #1e40af; }
+
+    .word-count { font-size: 0.75rem; color: var(--gray-400); text-align: right; margin-top: 0.25rem; }
+
+    /* ── CC feedback message ── */
+    #cc-message {
+      font-size: 0.78rem;
+      font-weight: 600;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="48" height="48" aria-label="Spring Hills Presbyterian Church" style="flex-shrink:0;">
+      <defs><clipPath id="cl"><circle cx="50" cy="50" r="46"/></clipPath></defs>
+      <circle cx="50" cy="50" r="46" fill="white"/>
+      <rect x="4" y="4" width="92" height="60" fill="#cde8ec" clip-path="url(#cl)"/>
+      <path d="M52,64 Q68,40 97,50 L97,97 L52,97 Z" fill="#7a9e50" clip-path="url(#cl)"/>
+      <path d="M3,68 Q22,44 48,60 L48,97 L3,97 Z" fill="#6B8B42" clip-path="url(#cl)"/>
+      <rect x="3" y="76" width="94" height="21" fill="#8aac5a" clip-path="url(#cl)"/>
+      <path d="M36,97 Q40,82 46,72 Q48,66 50,65 Q52,66 54,72 Q60,82 64,97 Z" fill="#5B9DA5" clip-path="url(#cl)"/>
+      <rect x="45.5" y="14" width="9" height="42" fill="#C49A2A" rx="1.5"/>
+      <rect x="33" y="24" width="34" height="9" fill="#C49A2A" rx="1.5"/>
+      <circle cx="50" cy="50" r="46" fill="none" stroke="#3d3d3d" stroke-width="2.5"/>
+    </svg>
+    <div class="header-text">
+      <h1>Sermon Research Tool</h1>
+      <p>#TruthMattersMost</p>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- API Key -->
+  <div class="api-card">
+    <label>Anthropic API Key</label>
+    <div class="api-row">
+      <input type="password" id="api-key-input" placeholder="sk-ant-…" autocomplete="off" />
+      <button class="btn-primary btn-sm" onclick="saveApiKey()" style="background:var(--gray-700);">Save</button>
+    </div>
+    <p class="api-note" id="api-key-note">Key stored only in this browser.</p>
+  </div>
+
+  <!-- Passage + Session Number (Commentary Combiner integration) -->
+  <div class="session-strip">
+    <div class="strip-label">Commentary Combiner Session</div>
+    <div class="strip-row">
+      <div class="strip-field">
+        <label for="cc-passage">Passage</label>
+        <input type="text" id="cc-passage" placeholder="e.g. 1 Peter 1:13-16" />
+      </div>
+      <div class="strip-field narrow">
+        <label for="cc-session">Session Number</label>
+        <input type="text" id="cc-session" placeholder="e.g. 07" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Sermon Details -->
+  <div class="card">
+    <div class="section-label">Sermon Details</div>
+    <div class="fields-stack">
+
+      <div class="field" style="max-width:50%;">
+        <label for="sermon-date">Date</label>
+        <input type="date" id="sermon-date" />
+      </div>
+
+      <div class="field">
+        <label for="sermon-title">Sermon title or topic</label>
+        <input type="text" id="sermon-title" placeholder="e.g., Justified by Faith Alone" />
+      </div>
+
+      <div class="field">
+        <label for="bible-passage">Bible passage</label>
+        <input type="text" id="bible-passage" placeholder="e.g., Romans 3:21–26" />
+      </div>
+
+      <div class="field" style="max-width:50%;">
+        <label for="series-name">Series name <span class="opt">(optional)</span></label>
+        <input type="text" id="series-name" placeholder="e.g., The Five Solas" />
+      </div>
+
+      <div class="field">
+        <label for="series-context">Series context <span class="opt">(what came before / what comes after — optional)</span></label>
+        <textarea id="series-context" placeholder="e.g., Last week we covered Sola Scriptura. Next week moves to Sola Gratia."></textarea>
+      </div>
+
+      <div class="field">
+        <label for="additional-notes">Additional notes <span class="opt">(optional)</span></label>
+        <textarea id="additional-notes" placeholder="e.g., Congregation is working through covenant theology. Several members wrestling with assurance of salvation."></textarea>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- What I Most Need -->
+  <div class="card">
+    <div class="section-label">What I Most Need</div>
+    <p class="checkbox-hint">Pick only what's most useful — fewer selections = faster &amp; more focused results</p>
+    <div class="checkbox-grid">
+      <label class="check-label"><input type="checkbox" name="needs" value="greek_hebrew" /> Greek/Hebrew insights</label>
+      <label class="check-label"><input type="checkbox" name="needs" value="historical_background" /> Historical background</label>
+      <label class="check-label"><input type="checkbox" name="needs" value="theological_analysis" /> Theological analysis</label>
+      <label class="check-label"><input type="checkbox" name="needs" value="confessional_connections" /> Confessional connections</label>
+      <label class="check-label"><input type="checkbox" name="needs" value="pastoral_applications" /> Pastoral applications</label>
+      <label class="check-label"><input type="checkbox" name="needs" value="illustrations_metaphors" /> Illustrations &amp; metaphors</label>
+      <label class="check-label"><input type="checkbox" name="needs" value="scholar_quotes" /> Key quotes from Reformed scholars</label>
+      <label class="check-label"><input type="checkbox" name="needs" value="sermon_outline" /> Sermon outline</label>
+      <label class="check-label"><input type="checkbox" name="needs" value="church_history" /> Church history of the text</label>
+      <label class="check-label"><input type="checkbox" name="needs" value="series_integration" /> Series integration</label>
+      <label class="check-label"><input type="checkbox" name="needs" value="cross_tradition" /> Cross-tradition perspectives</label>
+    </div>
+  </div>
+
+  <!-- Report Depth -->
+  <div class="card">
+    <div class="section-label">Report Depth</div>
+    <div class="depth-options">
+      <label class="depth-option" onclick="selectDepth(this)">
+        <input type="radio" name="depth" value="focused" />
+        <div>
+          <div class="depth-label">Focused</div>
+          <div class="depth-desc">Key exegetical and theological points only</div>
+          <div class="depth-meta">~2 000 words · Best for quick prep or familiar passages</div>
+        </div>
+      </label>
+      <label class="depth-option selected" onclick="selectDepth(this)">
+        <input type="radio" name="depth" value="standard" checked />
+        <div>
+          <div class="depth-label">Standard <span style="font-size:0.75rem;color:var(--gray-400);">(Recommended)</span></div>
+          <div class="depth-desc">Full research report with all selected sections</div>
+          <div class="depth-meta">~5 000 words · Good for most Sunday sermons</div>
+        </div>
+      </label>
+      <label class="depth-option" onclick="selectDepth(this)">
+        <input type="radio" name="depth" value="comprehensive" />
+        <div>
+          <div class="depth-label">Comprehensive</div>
+          <div class="depth-desc">Deep dive with extended quotes and exhaustive analysis</div>
+          <div class="depth-meta">~8 000+ words · Best for major doctrinal series or conference messages</div>
+        </div>
+      </label>
+    </div>
+
+    <div id="form-error" class="error-box" style="display:none;"></div>
+
+    <div class="btn-row" style="margin-top:1.5rem;">
+      <button class="btn-primary" id="generate-btn" onclick="handleGenerate()">Generate Research Report</button>
+      <button class="btn-secondary" onclick="handleClear()">Clear</button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card" id="results-section">
+    <div class="results-header">
+      <h2 class="card-title">Reformed Research Report</h2>
+      <div class="btn-row" id="results-actions" style="display:none;">
+        <button class="link-btn" onclick="copyReport()">Copy to clipboard</button>
+        <button class="link-btn muted" onclick="downloadMarkdown()">Download .md</button>
+        <button class="link-btn muted" id="word-btn" onclick="downloadDocx()">Save as Word</button>
+        <button class="link-btn send" id="cc-send-btn" onclick="sendToCommentaryCombiner()">Send to Commentary Combiner</button>
+        <span id="cc-message"></span>
+      </div>
+    </div>
+
+    <div id="loading-row" class="loading-row" style="display:none;">
+      <span class="spinner"></span>
+      <span>Generating research report…</span>
+    </div>
+
+    <div class="word-count" id="word-count" style="display:none;"></div>
+    <div class="prose" id="report-output"></div>
+  </div>
+
+</main>
+
+<script>
+  // ── Markdown renderer ─────────────────────────────────────────────────────
+  function renderMarkdown(md) {
+    let html = md
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+      .replace(/^### (.+)$/gm,  '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm,   '<h2>$1</h2>')
+      .replace(/^# (.+)$/gm,    '<h1>$1</h1>')
+      .replace(/^---+$/gm, '<hr/>')
+      .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>')
+      .replace(/^\s*[-*] (.+)$/gm, '<li>$1</li>')
+      .replace(/^\s*\d+\. (.+)$/gm, '<li>$1</li>');
+
+    html = html.replace(/(<li>[\s\S]*?<\/li>)(\n<li>[\s\S]*?<\/li>)*/g, m => '<ul>' + m + '</ul>');
+    html = html.split('\n').map(line => {
+      const t = line.trim();
+      if (!t) return '';
+      if (t.startsWith('<h') || t.startsWith('<ul') || t.startsWith('<li')
+          || t.startsWith('<ol') || t.startsWith('<blockquote') || t.startsWith('<hr')) return t;
+      return '<p>' + t + '</p>';
+    }).join('\n');
+    return html;
+  }
+
+  // ── API Key ───────────────────────────────────────────────────────────────
+  (function initApiKey() {
+    const stored = localStorage.getItem('sermon_research_api_key');
+    if (stored) {
+      document.getElementById('api-key-input').value = stored;
+      document.getElementById('api-key-note').innerHTML = 'Key saved in this browser. <span class="api-saved">✓</span>';
+    }
+  })();
+
+  function saveApiKey() {
+    const key = document.getElementById('api-key-input').value.trim();
+    if (!key) return;
+    localStorage.setItem('sermon_research_api_key', key);
+    document.getElementById('api-key-note').innerHTML = 'Key saved in this browser. <span class="api-saved">✓</span>';
+  }
+
+  // ── Sync Passage fields (cc-passage ↔ bible-passage) ─────────────────────
+  document.addEventListener('DOMContentLoaded', function () {
+    const ccPassage    = document.getElementById('cc-passage');
+    const biblePassage = document.getElementById('bible-passage');
+    ccPassage.addEventListener('input', () => { biblePassage.value = ccPassage.value; });
+    biblePassage.addEventListener('input', () => { ccPassage.value = biblePassage.value; });
+  });
+
+  // ── Filename helpers ──────────────────────────────────────────────────────
+  function toPassageName(passage) {
+    return passage.trim()
+      .replace(/:/g, '_')
+      .replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9_.-]/g, '');
+  }
+
+  function sermonResearchFilename() {
+    const session     = document.getElementById('cc-session').value.trim() || 'XX';
+    const rawPassage  = document.getElementById('cc-passage').value.trim()
+                     || document.getElementById('bible-passage').value.trim()
+                     || 'passage';
+    const passageName = toPassageName(rawPassage);
+    return `${session}.${passageName}_Sermon_Research_Session_${session}_v1.md`;
+  }
+
+  // ── Depth selector ────────────────────────────────────────────────────────
+  function selectDepth(el) {
+    document.querySelectorAll('.depth-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    el.querySelector('input[type="radio"]').checked = true;
+  }
+
+  // ── Build prompt ──────────────────────────────────────────────────────────
+  function buildPrompt(data) {
+    const needsMap = {
+      greek_hebrew:            'Greek/Hebrew Insights',
+      historical_background:   'Historical Background',
+      theological_analysis:    'Theological Analysis',
+      confessional_connections:'Confessional Connections (Westminster Standards, Heidelberg Catechism, Belgic Confession)',
+      pastoral_applications:   'Pastoral Applications',
+      illustrations_metaphors: 'Illustrations & Metaphors',
+      scholar_quotes:          'Key Quotes from Reformed Scholars',
+      sermon_outline:          'Suggested Sermon Outline',
+      church_history:          'Church History of the Text',
+      series_integration:      'Series Integration',
+      cross_tradition:         'Cross-Tradition Perspectives (viewed through a Reformed lens)',
+    };
+
+    const selectedNeeds = data.needs.length > 0
+      ? data.needs.map(n => `- ${needsMap[n] || n}`).join('\n')
+      : Object.values(needsMap).map(v => `- ${v}`).join('\n');
+
+    const wordTarget = data.depth === 'focused' ? '2,000' : data.depth === 'comprehensive' ? '8,000+' : '5,000+';
+
+    const systemPrompt = `You are a world-class Reformed theological researcher and exegete with deep expertise in:
+
+**Confessions & Standards:**
+- Westminster Confession of Faith, Westminster Larger & Shorter Catechisms
+- Heidelberg Catechism and Belgic Confession
+- Canons of Dort (TULIP: Total Depravity, Unconditional Election, Limited Atonement, Irresistible Grace, Perseverance of the Saints)
+- Three Forms of Unity
+
+**Theology:**
+- Covenant theology (covenant of works, covenant of grace, covenant of redemption)
+- The Five Solas (Sola Scriptura, Sola Fide, Sola Gratia, Solus Christus, Soli Deo Gloria)
+- God's absolute sovereignty in salvation and providence
+- Regulative principle of worship
+- Law/Gospel distinction within covenant theology
+- Christ-centered, redemptive-historical hermeneutics (Geerhardus Vos, Edmund Clowney)
+
+**Reformed Scholars You Draw From:**
+Calvin, Luther, Turretin, Owen, à Brakel, Thomas Watson, Thomas Goodwin, Matthew Henry, Charles Hodge, B.B. Warfield, Geerhardus Vos, Herman Bavinck, Louis Berkhof, Cornelius Van Til, D. Martyn Lloyd-Jones, R.C. Sproul, John Piper, Joel Beeke, Michael Horton, Bryan Chapell, Tim Keller, Sinclair Ferguson, Derek Thomas, Mark Jones, Thomas Schreiner
+
+**Hermeneutical Approach:**
+- Scripture interprets Scripture (analogia scripturae)
+- Grammatical-historical exegesis
+- Redemptive-historical Christ-centered interpretation
+- Application flows from indicative (who God is / what Christ has done) to imperative (how we should live)
+- All Scripture points to Christ and is ultimately about God's glory in redemption
+
+Your task is to produce a thorough, scholarly yet pastorally warm research report for a ruling elder preaching from a Reformed theological perspective. The report should be deeply rooted in Scripture, informed by Reformed confessions, and grounded in the best of the Reformed exegetical and pastoral tradition.
+
+All Scripture references should default to the ESV unless the Greek/Hebrew analysis requires another rendering.
+
+Target length: ${wordTarget} words.`;
+
+    const userPrompt = `Please generate a comprehensive Reformed sermon research report with the following details:
+
+**Passage:** ${data.passage || '(not specified)'}
+**Sermon title/topic:** ${data.title || '(not specified)'}
+${data.date ? `**Date:** ${data.date}` : ''}
+${data.series ? `**Series:** ${data.series}` : ''}
+${data.context ? `**Series context:** ${data.context}` : ''}
+${data.notes ? `**Additional notes:** ${data.notes}` : ''}
+
+**Sections to include:**
+${selectedNeeds}
+
+---
+
+Structure your report with clear ## headings for each major section. Use ### for subsections. Include blockquotes (> ) for all scholar and confessional quotes. Be thorough, scholarly, and pastorally warm throughout. Every section should be deeply Reformed in its theological orientation.
+
+Begin the report with a brief introductory overview paragraph that orients the preacher to the passage and its theological significance within the Reformed tradition.`;
+
+    return { systemPrompt, userPrompt };
+  }
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let abortController = null;
+  let currentReport   = '';
+  let currentTitle    = '';
+
+  // ── Generate ──────────────────────────────────────────────────────────────
+  async function handleGenerate() {
+    const apiKey = localStorage.getItem('sermon_research_api_key') || document.getElementById('api-key-input').value.trim();
+    if (!apiKey) { showError('Please enter and save your Anthropic API key first.'); return; }
+
+    const passage = document.getElementById('bible-passage').value.trim();
+    const title   = document.getElementById('sermon-title').value.trim();
+    if (!passage && !title) { showError('Please enter a Bible passage or sermon topic.'); return; }
+
+    const needs = Array.from(document.querySelectorAll('input[name="needs"]:checked')).map(el => el.value);
+    const depth = document.querySelector('input[name="depth"]:checked')?.value || 'standard';
+
+    const data = {
+      passage, title,
+      date:    document.getElementById('sermon-date').value,
+      series:  document.getElementById('series-name').value.trim(),
+      context: document.getElementById('series-context').value.trim(),
+      notes:   document.getElementById('additional-notes').value.trim(),
+      needs, depth,
+    };
+
+    currentTitle = passage || title;
+    hideError();
+    setGenerating(true);
+
+    const resultsSection = document.getElementById('results-section');
+    resultsSection.style.display = 'block';
+    document.getElementById('loading-row').style.display = 'flex';
+    document.getElementById('results-actions').style.display = 'none';
+    document.getElementById('word-count').style.display = 'none';
+    document.getElementById('report-output').innerHTML = '';
+    currentReport = '';
+    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    const { systemPrompt, userPrompt } = buildPrompt(data);
+    abortController = new AbortController();
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type':                            'application/json',
+          'x-api-key':                              apiKey,
+          'anthropic-version':                      '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model:      'claude-sonnet-4-6',
+          max_tokens: 16000,
+          system:     systemPrompt,
+          messages:   [{ role: 'user', content: userPrompt }],
+        }),
+        signal: abortController.signal,
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        let msg = `API error ${response.status}`;
+        try { msg = JSON.parse(errText).error?.message || msg; } catch {}
+        throw new Error(msg);
+      }
+
+      const data2 = await response.json();
+      currentReport = data2.content?.[0]?.text || '';
+
+      if (!currentReport.trim()) throw new Error('No content returned. Please try again.');
+
+      document.getElementById('loading-row').style.display = 'none';
+      document.getElementById('report-output').innerHTML = renderMarkdown(currentReport);
+      updateWordCount();
+      document.getElementById('results-actions').style.display = 'flex';
+
+    } catch (err) {
+      document.getElementById('loading-row').style.display = 'none';
+      if (err.name !== 'AbortError') {
+        showError('Error: ' + (err.message || 'Something went wrong.'));
+        if (!currentReport) document.getElementById('results-section').style.display = 'none';
+      }
+    } finally {
+      setGenerating(false);
+      abortController = null;
+    }
+  }
+
+  function updateWordCount() {
+    const words = currentReport.trim().split(/\s+/).filter(Boolean).length;
+    const wc = document.getElementById('word-count');
+    wc.style.display = 'block';
+    wc.textContent = words.toLocaleString() + ' words';
+  }
+
+  function setGenerating(on) {
+    const btn = document.getElementById('generate-btn');
+    if (on) {
+      btn.textContent = 'Stop';
+      btn.classList.add('stopping');
+      btn.onclick = () => { abortController?.abort(); setGenerating(false); };
+    } else {
+      btn.textContent = 'Generate Research Report';
+      btn.classList.remove('stopping');
+      btn.onclick = handleGenerate;
+    }
+  }
+
+  function handleClear() {
+    ['bible-passage','sermon-title','sermon-date','series-name','series-context','additional-notes',
+     'cc-passage','cc-session']
+      .forEach(id => document.getElementById(id).value = '');
+    document.querySelectorAll('input[name="needs"]').forEach(el => el.checked = false);
+    document.getElementById('results-section').style.display = 'none';
+    document.getElementById('report-output').innerHTML = '';
+    currentReport = '';
+    hideError();
+    hideCcMessage();
+  }
+
+  function showError(msg) { const el = document.getElementById('form-error'); el.textContent = msg; el.style.display = 'block'; }
+  function hideError()    { document.getElementById('form-error').style.display = 'none'; }
+
+  // ── Send to Commentary Combiner ───────────────────────────────────────────
+  async function sendToCommentaryCombiner() {
+    const passage       = document.getElementById('cc-passage').value.trim();
+    const sessionNumber = document.getElementById('cc-session').value.trim();
+
+    if (!passage || !sessionNumber) {
+      showCcMessage('Fill in the Passage and Session Number fields first.', 'error');
+      return;
+    }
+    if (!currentReport) {
+      showCcMessage('No report to send yet.', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('cc-send-btn');
+    btn.textContent = 'Sending…';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('http://localhost:3000/api/receive-sermon-research', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passage, sessionNumber, content: currentReport }),
+      });
+
+      if (res.ok) {
+        showCcMessage('✓ Sent to Commentary Combiner', 'success');
+        btn.textContent = '✓ Sent!';
+        setTimeout(() => { btn.textContent = 'Send to Commentary Combiner'; btn.disabled = false; }, 3000);
+      } else {
+        const d = await res.json().catch(() => ({}));
+        showCcMessage(d.error || 'Commentary Combiner returned an error.', 'error');
+        btn.textContent = 'Send to Commentary Combiner';
+        btn.disabled = false;
+      }
+    } catch {
+      showCcMessage('Commentary Combiner is not running at localhost:3000. Start it first.', 'error');
+      btn.textContent = 'Send to Commentary Combiner';
+      btn.disabled = false;
+    }
+  }
+
+  function showCcMessage(msg, type) {
+    const el = document.getElementById('cc-message');
+    el.textContent = msg;
+    el.style.color = type === 'success' ? '#16a34a' : '#b91c1c';
+    el.style.display = 'inline';
+  }
+
+  function hideCcMessage() {
+    const el = document.getElementById('cc-message');
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+
+  // ── Copy / Download Markdown ──────────────────────────────────────────────
+  function copyReport() {
+    navigator.clipboard.writeText(currentReport).then(() => {
+      const btn = event.target;
+      btn.textContent = '✓ Copied!';
+      setTimeout(() => btn.textContent = 'Copy to clipboard', 2000);
+    });
+  }
+
+  function downloadMarkdown() {
+    const filename = sermonResearchFilename();
+    const blob = new Blob([currentReport], { type: 'text/markdown' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+  }
+
+  // ── Word Export ───────────────────────────────────────────────────────────
+  function mdToWordHtml(md) {
+    let html = md
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+      .replace(/^### (.+)$/gm,  '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm,   '<h2>$1</h2>')
+      .replace(/^# (.+)$/gm,    '<h1>$1</h1>')
+      .replace(/^---+$/gm, '<hr/>')
+      .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+      .replace(/^\s*[-*] (.+)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>[\s\S]*?<\/li>)(\n<li>[\s\S]*?<\/li>)*/g, m => '<ul>' + m + '</ul>');
+    html = html.split('\n').map(line => {
+      const t = line.trim();
+      if (!t) return '<p>&nbsp;</p>';
+      if (t.match(/^<(h[1-4]|ul|li|ol|blockquote|hr)/)) return t;
+      return '<p>' + t + '</p>';
+    }).join('\n');
+    return html;
+  }
+
+  function downloadDocx() {
+    if (!currentReport) return;
+    const btn = document.getElementById('word-btn');
+    btn.textContent = 'Building…';
+    try {
+      const body = mdToWordHtml(currentReport);
+      const wordHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+  xmlns:w="urn:schemas-microsoft-com:office:word"
+  xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8">
+<style>
+  @page { margin: 1in; }
+  body        { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.4; color: #000000; }
+  h1          { font-family: Arial, sans-serif; font-size: 18pt; font-weight: bold; color: #2F7E86; margin: 18pt 0 8pt; }
+  h2          { font-family: Arial, sans-serif; font-size: 15pt; font-weight: bold; color: #5A7835; margin: 15pt 0 7pt; }
+  h3          { font-family: Arial, sans-serif; font-size: 13pt; font-weight: bold; color: #1F6068; margin: 13pt 0 6pt; }
+  h4          { font-family: Arial, sans-serif; font-size: 12pt; font-weight: bold; color: #B8920A; margin: 12pt 0 6pt; }
+  p           { font-family: Arial, sans-serif; font-size: 12pt; margin: 4pt 0; }
+  blockquote  { font-family: Georgia, serif; font-size: 11pt; font-style: italic; color: #444444;
+                margin: 10pt 36pt; padding: 4pt 0 4pt 12pt; border-left: 3pt solid #2F7E86; }
+  ul, ol      { font-family: Arial, sans-serif; font-size: 12pt; margin: 4pt 0 4pt 24pt; }
+  li          { margin: 2pt 0; }
+  hr          { border: none; border-top: 1pt solid #B5D5D9; margin: 10pt 0; }
+</style>
+</head>
+<body>${body}</body>
+</html>`;
+      const session     = document.getElementById('cc-session').value.trim() || 'XX';
+      const rawPassage  = document.getElementById('cc-passage').value.trim()
+                       || document.getElementById('bible-passage').value.trim()
+                       || 'passage';
+      const passageName = toPassageName(rawPassage);
+      const filename    = `${session}.${passageName}_Sermon_Research_Session_${session}_v1.doc`;
+      const blob = new Blob([wordHtml], { type: 'application/msword' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+      btn.textContent = '✓ Downloaded';
+      setTimeout(() => btn.textContent = 'Save as Word', 2500);
+    } catch (err) {
+      btn.textContent = 'Save as Word';
+      showError('Word export failed: ' + (err.message || 'unknown error'));
+    }
+  }
+</script>
+</body>
+</html>
