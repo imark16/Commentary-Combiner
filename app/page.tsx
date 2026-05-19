@@ -52,7 +52,9 @@ export default function Home() {
   // ── Passage / Session ──
   const [passage, setPassage]           = useState('');
   const [sessionNumber, setSessionNumber] = useState('');
+  const [researchToast, setResearchToast] = useState('');
   const lastSeenAt = useRef('');
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Resources Library ──
   const [libOpen, setLibOpen]           = useState(false);
@@ -101,6 +103,10 @@ export default function Home() {
           lastSeenAt.current = d.receivedAt;
           if (d.passage) setPassage(d.passage);
           if (d.sessionNumber) setSessionNumber(d.sessionNumber);
+          const msg = [d.passage, d.sessionNumber ? `Session ${d.sessionNumber}` : ''].filter(Boolean).join(' · ');
+          setResearchToast(`Research received — ${msg}`);
+          if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+          toastTimerRef.current = setTimeout(() => setResearchToast(''), 8000);
         }
       } catch { /* ignore */ }
     }, 5000);
@@ -218,6 +224,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {researchToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-lg flex items-center gap-3 max-w-lg">
+          <span className="text-lg leading-none">✓</span>
+          <span className="flex-1">{researchToast}</span>
+          <button onClick={() => setResearchToast('')} className="text-green-200 hover:text-white text-lg leading-none">×</button>
+        </div>
+      )}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <h1 className="text-xl font-bold text-gray-900">Commentary-Combiner</h1>
