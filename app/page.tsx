@@ -54,7 +54,6 @@ export default function Home() {
   const [sessionNumber, setSessionNumber] = useState('');
   const [researchToast, setResearchToast] = useState('');
   const lastSeenAt = useRef('');
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Resources Library ──
   const [libOpen, setLibOpen]           = useState(false);
@@ -105,8 +104,6 @@ export default function Home() {
           if (d.sessionNumber) setSessionNumber(d.sessionNumber);
           const msg = [d.passage, d.sessionNumber ? `Session ${d.sessionNumber}` : ''].filter(Boolean).join(' · ');
           setResearchToast(`Research received — ${msg}`);
-          if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-          toastTimerRef.current = setTimeout(() => setResearchToast(''), 8000);
         }
       } catch { /* ignore */ }
     }, 5000);
