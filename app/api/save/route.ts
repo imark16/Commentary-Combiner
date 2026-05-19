@@ -3,12 +3,19 @@ import path from 'path';
 import { exec } from 'child_process';
 import { NextRequest } from 'next/server';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+import { normalizePassage, buildVaultPath } from '../../../lib/passage';
 
 function getSaveFolder(): string {
   const configured = process.env.SAVE_FOLDER?.replace(/^~/, process.env.HOME || '');
   const folder = configured || path.join(process.env.HOME || '', 'Documents', 'Commentary Syntheses');
   if (!fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
   return folder;
+}
+
+function getVaultRoot(): string {
+  const v = process.env.OBSIDIAN_VAULT;
+  if (!v) return '';
+  return v.replace(/^~/, process.env.HOME || '');
 }
 
 function timestamp(): string {
@@ -24,7 +31,6 @@ function timestamp(): string {
   ].join('');
 }
 
-// Parse inline markdown (bold, italic) into TextRun array
 function parseInline(text: string): TextRun[] {
   const runs: TextRun[] = [];
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/);
@@ -44,7 +50,6 @@ function parseInline(text: string): TextRun[] {
 async function buildDocx(markdown: string): Promise<Buffer> {
   const lines = markdown.split('\n');
   const children: Paragraph[] = [];
-
   for (const line of lines) {
     if (line.startsWith('#### ')) {
       children.push(new Paragraph({ text: line.slice(5).trim(), heading: HeadingLevel.HEADING_4 }));
@@ -62,13 +67,12 @@ async function buildDocx(markdown: string): Promise<Buffer> {
       children.push(new Paragraph({ text: '' }));
     }
   }
-
   const doc = new Document({ sections: [{ children }] });
   return Packer.toBuffer(doc);
 }
 
-// POST { result } → save markdown, return { mdPath, filename }
-// POST { action: 'word', mdPath } → convert to .docx, open in Word
+// POST { result, passage?, sessionNumber? } → save markdown
+// POST { action: 'word', mdPath } → convert to .docx and open
 export async function POST(request: NextRequest) {
   const body = await request.json();
 
@@ -82,7 +86,6 @@ export async function POST(request: NextRequest) {
       const docxBuf = await buildDocx(markdown);
       const docxPath = mdPath.replace(/\.md$/, '.docx');
       fs.writeFileSync(docxPath, docxBuf);
-      // Open in Word (or Pages / LibreOffice if Word isn't installed)
       await new Promise<void>((resolve) => exec(`open "${docxPath.replace(/"/g, '\\"')}"`, () => resolve()));
       return Response.json({ ok: true, docxPath });
     } catch (err) {
@@ -91,12 +94,32 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Default: save markdown
-  const { result } = body;
+  const { result, passage, sessionNumber } = body;
   if (!result?.trim()) {
     return Response.json({ error: 'No content to save.' }, { status: 400 });
   }
+
   try {
+    // If passage + session provided, save to vault with structured naming
+    if (passage?.trim() && sessionNumber?.trim()) {
+      const vaultRoot = getVaultRoot();
+      if (vaultRoot && fs.existsSync(vaultRoot)) {
+        const info = normalizePassage(passage);
+        const { folder, filename, fullPath } = buildVaultPath(
+          vaultRoot,
+          info.bookName,
+          sessionNumber,
+          info.passageCode,
+          info.passageName,
+          'Synthesis',
+        );
+        fs.mkdirSync(folder, { recursive: true });
+        fs.writeFileSync(fullPath, result, 'utf-8');
+        return Response.json({ ok: true, mdPath: fullPath, filename, folder });
+      }
+    }
+
+    // Fallback: save to Documents/Commentary Syntheses with timestamp
     const folder = getSaveFolder();
     const filename = `synthesis-${timestamp()}.md`;
     const mdPath = path.join(folder, filename);

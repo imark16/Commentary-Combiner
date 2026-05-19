@@ -49,6 +49,11 @@ export default function Home() {
   const [exportingWord, setExportingWord] = useState(false);
   const [wordDone, setWordDone]         = useState(false);
 
+  // ── Passage / Session ──
+  const [passage, setPassage]           = useState('');
+  const [sessionNumber, setSessionNumber] = useState('');
+  const lastSeenAt = useRef('');
+
   // ── Resources Library ──
   const [libOpen, setLibOpen]           = useState(false);
   const [libTab, setLibTab]             = useState<LibTab>('browse');
@@ -85,6 +90,21 @@ export default function Home() {
     }).catch(() => {});
     fetch('/api/search').then(r => r.json()).then(s => setIdxStatus(s)).catch(() => {});
     fetch('/api/vault').then(r => r.json()).then(s => setVaultStatus(s)).catch(() => {});
+  }, []);
+
+  // Poll for incoming sermon research — auto-populate passage/session when new data arrives
+  useEffect(() => {
+    const id = setInterval(async () => {
+      try {
+        const d = await fetch('/api/receive-sermon-research').then(r => r.json());
+        if (d.receivedAt && d.receivedAt !== lastSeenAt.current) {
+          lastSeenAt.current = d.receivedAt;
+          if (d.passage) setPassage(d.passage);
+          if (d.sessionNumber) setSessionNumber(d.sessionNumber);
+        }
+      } catch { /* ignore */ }
+    }, 5000);
+    return () => clearInterval(id);
   }, []);
 
   // Poll epub index while building
@@ -173,8 +193,8 @@ export default function Home() {
       if (!res.ok) throw new Error(await res.text() || 'Request failed.');
       const { result, resourcesUsed: ru, vaultNotesUsed: vu } = await res.json();
       setSynthesis(result); setResourcesUsed(ru ?? []); setVaultNotesUsed(vu ?? []);
-      // Auto-save markdown
-      const saveRes = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ result }) });
+      // Auto-save markdown (uses vault structured path if passage+session provided)
+      const saveRes = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ result, passage, sessionNumber }) });
       const saveData = await saveRes.json();
       if (saveData.ok) { setSavedMdPath(saveData.mdPath); setSavedFilename(saveData.filename); }
       else setSaveError(saveData.error ?? 'Could not save file.');
@@ -182,7 +202,7 @@ export default function Home() {
       if (err instanceof Error && err.name !== 'AbortError')
         setGenError(err.message || 'Something went wrong.');
     } finally { setLoadingGen(false); }
-  }, [text, depth, selectedPaths, selectedVaultPaths]);
+  }, [text, depth, selectedPaths, selectedVaultPaths, passage, sessionNumber]);
 
   const handleExportWord = async () => {
     if (!savedMdPath) return;
@@ -437,6 +457,21 @@ export default function Home() {
           <p className="text-sm text-gray-500 mb-4">
             Paste commentary exports below. Select books from Resources Library or notes from your Obsidian Vault above to include them. All Scripture citations will use the ESV.
           </p>
+
+          <div className="flex gap-4 mb-4 flex-wrap">
+            <div className="flex-1 min-w-48">
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Passage</label>
+              <input type="text" value={passage} onChange={e => setPassage(e.target.value)}
+                placeholder="e.g. 1 Peter 1:13-16"
+                className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#c0392b]/40 focus:border-[#c0392b]" />
+            </div>
+            <div className="w-36">
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Session Number</label>
+              <input type="text" value={sessionNumber} onChange={e => setSessionNumber(e.target.value)}
+                placeholder="e.g. 07"
+                className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#c0392b]/40 focus:border-[#c0392b]" />
+            </div>
+          </div>
           <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Paste your commentary exports here…" disabled={loadingGen}
             className="w-full h-64 p-4 text-sm text-gray-800 border border-gray-200 rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-[#c0392b]/40 focus:border-[#c0392b] placeholder-gray-400" />
           <div className="text-right text-xs text-gray-400 mt-1">{text.length.toLocaleString()} characters</div>
