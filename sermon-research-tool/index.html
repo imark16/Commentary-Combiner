@@ -769,7 +769,7 @@ Begin the report with a brief introductory overview paragraph that orients the p
     btn.disabled = true;
 
     try {
-      const res = await fetch('http://localhost:3000/api/receive-sermon-research', {
+      const res = await fetch('https://commentary-combiner-git-claude-biblical-comment-4e2f8a-triplett.vercel.app/api/receive-sermon-research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ passage, sessionNumber, content: currentReport }),
@@ -786,7 +786,7 @@ Begin the report with a brief introductory overview paragraph that orients the p
         btn.disabled = false;
       }
     } catch {
-      showCcMessage('Commentary Combiner is not running at localhost:3000. Start it first.', 'error');
+      showCcMessage('Could not reach Commentary Combiner. Check your connection and try again.', 'error');
       btn.textContent = 'Send to Commentary Combiner';
       btn.disabled = false;
     }
