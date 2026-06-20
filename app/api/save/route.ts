@@ -77,17 +77,33 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
 
   if (body.action === 'word') {
-    const { mdPath } = body;
-    if (!mdPath || !fs.existsSync(mdPath)) {
-      return Response.json({ error: 'Markdown file not found.' }, { status: 404 });
-    }
+    const { mdPath, content, passage, sessionNumber } = body;
     try {
-      const markdown = fs.readFileSync(mdPath, 'utf-8');
-      const docxBuf = await buildDocx(markdown);
-      const docxPath = mdPath.replace(/\.md$/, '.docx');
-      fs.writeFileSync(docxPath, docxBuf);
-      await new Promise<void>((resolve) => exec(`open "${docxPath.replace(/"/g, '\\"')}"`, () => resolve()));
-      return Response.json({ ok: true, docxPath });
+      let markdown: string;
+      if (content) {
+        // Hosted: content passed directly, return docx as download
+        markdown = content;
+        const docxBuf = await buildDocx(markdown);
+        const filename = passage && sessionNumber
+          ? `Session-${sessionNumber}_${passage.replace(/\s+/g, '-')}_Synthesis.docx`
+          : 'synthesis.docx';
+        return new Response(docxBuf, {
+          headers: {
+            'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'Content-Disposition': `attachment; filename="${filename}"`,
+          },
+        });
+      } else if (mdPath && fs.existsSync(mdPath)) {
+        // Local: read from disk, write docx, open in Word
+        markdown = fs.readFileSync(mdPath, 'utf-8');
+        const docxBuf = await buildDocx(markdown);
+        const docxPath = mdPath.replace(/\.md$/, '.docx');
+        fs.writeFileSync(docxPath, docxBuf);
+        await new Promise<void>((resolve) => exec(`open "${docxPath.replace(/"/g, '\\"')}"`, () => resolve()));
+        return Response.json({ ok: true, docxPath });
+      } else {
+        return Response.json({ error: 'No content provided.' }, { status: 400 });
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       return Response.json({ error: msg }, { status: 500 });

@@ -196,25 +196,59 @@ export default function Home() {
       if (!res.ok) throw new Error(await res.text() || 'Request failed.');
       const { result, resourcesUsed: ru, vaultNotesUsed: vu } = await res.json();
       setSynthesis(result); setResourcesUsed(ru ?? []); setVaultNotesUsed(vu ?? []);
-      // Auto-save markdown (uses vault structured path if passage+session provided)
-      const saveRes = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ result, passage, sessionNumber }) });
-      const saveData = await saveRes.json();
-      if (saveData.ok) { setSavedMdPath(saveData.mdPath); setSavedFilename(saveData.filename); }
-      else setSaveError(saveData.error ?? 'Could not save file.');
+      // Auto-save markdown to local disk (skipped in hosted/Vercel environment)
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        const saveRes = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ result, passage, sessionNumber }) });
+        const saveData = await saveRes.json();
+        if (saveData.ok) { setSavedMdPath(saveData.mdPath); setSavedFilename(saveData.filename); }
+        else setSaveError(saveData.error ?? 'Could not save file.');
+      }
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== 'AbortError')
         setGenError(err.message || 'Something went wrong.');
     } finally { setLoadingGen(false); }
   }, [text, depth, selectedPaths, selectedVaultPaths, passage, sessionNumber]);
 
+  const handleDownloadMarkdown = () => {
+    const filename = passage && sessionNumber
+      ? `Session-${sessionNumber}_${passage.replace(/\s+/g, '-')}_Synthesis.md`
+      : `synthesis-${Date.now()}.md`;
+    const blob = new Blob([synthesis], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleExportWord = async () => {
-    if (!savedMdPath) return;
+    if (!synthesis) return;
     setExportingWord(true); setWordDone(false);
-    const res = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'word', mdPath: savedMdPath }) });
-    const d = await res.json();
-    setExportingWord(false);
-    if (d.ok) setWordDone(true);
-    else setSaveError(d.error ?? 'Word export failed.');
+    const isLocal = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+    if (isLocal && savedMdPath) {
+      // Local: existing behavior — save to disk and open in Word
+      const res = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'word', mdPath: savedMdPath }) });
+      const d = await res.json();
+      setExportingWord(false);
+      if (d.ok) setWordDone(true);
+      else setSaveError(d.error ?? 'Word export failed.');
+    } else {
+      // Hosted: generate docx server-side and download in browser
+      const res = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'word', content: synthesis, passage, sessionNumber }) });
+      if (res.ok) {
+        const blob = await res.blob();
+        const filename = passage && sessionNumber
+          ? `Session-${sessionNumber}_${passage.replace(/\s+/g, '-')}_Synthesis.docx`
+          : `synthesis.docx`;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename; a.click();
+        URL.revokeObjectURL(url);
+        setWordDone(true);
+      } else {
+        setSaveError('Word export failed.');
+      }
+      setExportingWord(false);
+    }
   };
 
   const handleClear = () => { setText(''); setSynthesis(''); setGenError(''); setResourcesUsed([]); setVaultNotesUsed([]); setSavedMdPath(''); setSavedFilename(''); setSaveError(''); setWordDone(false); };
@@ -526,12 +560,13 @@ export default function Home() {
                       Saved: <OpenLink filePath={savedMdPath} className="underline text-gray-700 hover:text-gray-900 cursor-pointer">{savedFilename}</OpenLink>
                     </span>
                   )}
-                  {savedMdPath && (
-                    <button onClick={handleExportWord} disabled={exportingWord}
-                      className="text-xs px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
-                      {exportingWord ? 'Opening…' : wordDone ? '✓ Opened in Word' : 'Save as Word'}
-                    </button>
+                  {!savedFilename && (
+                    <button onClick={handleDownloadMarkdown} className="text-xs text-gray-600 hover:text-gray-900 font-medium">Download Markdown</button>
                   )}
+                  <button onClick={handleExportWord} disabled={exportingWord}
+                    className="text-xs px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                    {exportingWord ? 'Generating…' : wordDone ? '✓ Downloaded' : 'Download as Word'}
+                  </button>
                   {saveError && <span className="text-xs text-red-600">{saveError}</span>}
                 </div>
               )}
