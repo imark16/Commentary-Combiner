@@ -93,9 +93,26 @@ export default function Home() {
     fetch('/api/vault').then(r => r.json()).then(s => setVaultStatus(s)).catch(() => {});
   }, []);
 
-  // Poll for incoming sermon research — auto-populate passage/session when new data arrives
+  // Poll for incoming sermon research — check localStorage (hosted) and API (local)
   useEffect(() => {
     const id = setInterval(async () => {
+      // Check localStorage first (works on hosted Vercel — same domain)
+      try {
+        const raw = localStorage.getItem('sermon_research_incoming');
+        if (raw) {
+          const d = JSON.parse(raw);
+          if (d.receivedAt && d.receivedAt !== lastSeenAt.current) {
+            lastSeenAt.current = d.receivedAt;
+            if (d.passage) setPassage(d.passage);
+            if (d.sessionNumber) setSessionNumber(d.sessionNumber);
+            if (d.content) setText(d.content);
+            const msg = [d.passage, d.sessionNumber ? `Session ${d.sessionNumber}` : ''].filter(Boolean).join(' · ');
+            setResearchToast(`Research received — ${msg}`);
+            localStorage.removeItem('sermon_research_incoming');
+          }
+        }
+      } catch { /* ignore */ }
+      // Also check API (local development)
       try {
         const d = await fetch('/api/receive-sermon-research').then(r => r.json());
         if (d.receivedAt && d.receivedAt !== lastSeenAt.current) {

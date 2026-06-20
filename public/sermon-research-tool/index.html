@@ -769,24 +769,25 @@ Begin the report with a brief introductory overview paragraph that orients the p
     btn.disabled = true;
 
     try {
-      const res = await fetch('https://commentary-combiner-git-claude-biblical-comment-4e2f8a-triplett.vercel.app/api/receive-sermon-research', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ passage, sessionNumber, content: currentReport }),
-      });
+      // Write to localStorage so Commentary Combiner (same domain) can pick it up
+      localStorage.setItem('sermon_research_incoming', JSON.stringify({
+        passage, sessionNumber, content: currentReport, receivedAt: new Date().toISOString()
+      }));
 
-      if (res.ok) {
-        showCcMessage('✓ Sent to Commentary Combiner', 'success');
-        btn.textContent = '✓ Sent!';
-        setTimeout(() => { btn.textContent = 'Send to Commentary Combiner'; btn.disabled = false; }, 3000);
-      } else {
-        const d = await res.json().catch(() => ({}));
-        showCcMessage(d.error || 'Commentary Combiner returned an error.', 'error');
-        btn.textContent = 'Send to Commentary Combiner';
-        btn.disabled = false;
-      }
+      // Also attempt API call for local development
+      try {
+        await fetch('/api/receive-sermon-research', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ passage, sessionNumber, content: currentReport }),
+        });
+      } catch { /* local API not required in hosted mode */ }
+
+      showCcMessage('✓ Sent to Commentary Combiner — switch to that tab to see it.', 'success');
+      btn.textContent = '✓ Sent!';
+      setTimeout(() => { btn.textContent = 'Send to Commentary Combiner'; btn.disabled = false; }, 3000);
     } catch {
-      showCcMessage('Could not reach Commentary Combiner. Check your connection and try again.', 'error');
+      showCcMessage('Could not send to Commentary Combiner. Try again.', 'error');
       btn.textContent = 'Send to Commentary Combiner';
       btn.disabled = false;
     }
