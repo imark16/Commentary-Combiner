@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         const filename = passage && sessionNumber
           ? `Session-${sessionNumber}_${passage.replace(/\s+/g, '-')}_Synthesis.docx`
           : 'synthesis.docx';
-        return new Response(docxBuf, {
+        return new Response(new Uint8Array(docxBuf), {
           headers: {
             'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'Content-Disposition': `attachment; filename="${filename}"`,
